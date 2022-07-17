@@ -10,7 +10,6 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
-  Query,
 } from '@nestjs/common';
 import { AlbumDto } from './models/album.model';
 import { AlbumsService } from './services/albums.service';
@@ -20,11 +19,8 @@ export class AlbumsController {
   constructor(private albumsService: AlbumsService) {}
 
   @Get()
-  public albums(
-    @Query('limit') limit: number,
-    @Query('offset') offset: number,
-  ) {
-    return this.albumsService.getAllAlbums(limit, offset);
+  public albums() {
+    return this.albumsService.getAllAlbums();
   }
 
   @Get(':id')

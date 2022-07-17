@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
+import { AlbumsService } from 'src/modules/albums/services/albums.service';
+import { ArtistsService } from 'src/modules/artists/services/artists.service';
 import { v4 } from 'uuid';
-import { Track, TrackDto, TracksResponse } from '../models/tracks.model';
+import { Track, TrackDto } from '../models/tracks.model';
 
 @Injectable()
 export class TracksService {
@@ -10,18 +12,28 @@ export class TracksService {
 
   public deletedId = this.tracksToDeleteSubject.asObservable();
 
-  public async getAllTracks(
-    limit?: number,
-    offset = 0,
-  ): Promise<TracksResponse> {
-    return {
-      items: limit
-        ? this.tracks.slice(limit * offset, limit * (offset + 1))
-        : this.tracks,
-      limit: limit ?? null,
-      total: this.tracks.length,
-      offset,
-    };
+  constructor(
+    private artistsService: ArtistsService,
+    private albumsService: AlbumsService,
+  ) {
+    this.artistsService.deletedId.subscribe((id) => {
+      this.tracks.forEach((track) => {
+        if (track.artistId === id) {
+          track.artistId = null;
+        }
+      });
+    });
+    this.albumsService.deletedId.subscribe((id) => {
+      this.tracks.forEach((track) => {
+        if (track.albumId === id) {
+          track.albumId = null;
+        }
+      });
+    });
+  }
+
+  public async getAllTracks(): Promise<Track[]> {
+    return this.tracks;
   }
 
   public async addOneTrack(trackInfo: TrackDto) {

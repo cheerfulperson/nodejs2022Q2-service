@@ -10,7 +10,6 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
-  Query,
 } from '@nestjs/common';
 import { CreateUserDto, UpdatePasswordDto } from './models/user.modeils';
 import { UsersService } from './services/users.service';
@@ -20,8 +19,8 @@ export class UsersController {
   constructor(private userService: UsersService) {}
 
   @Get()
-  public users(@Query('limit') limit: number, @Query('offset') offset: number) {
-    return this.userService.getAllUsers(limit, offset);
+  public users() {
+    return this.userService.getAllUsers();
   }
 
   @Get(':id')
@@ -48,7 +47,7 @@ export class UsersController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() usersInfo: UpdatePasswordDto,
   ) {
-    this.userService.checkUserToUpdate(id, usersInfo);
+    await this.userService.checkUserToUpdate(id, usersInfo);
     return this.userService.updateUser(id, usersInfo);
   }
 

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Subject } from 'rxjs';
+import { ArtistsService } from 'src/modules/artists/services/artists.service';
 import { v4 } from 'uuid';
-import { Album, AlbumDto, AlbumsResponse } from '../models/album.model';
+import { Album, AlbumDto } from '../models/album.model';
 
 @Injectable()
 export class AlbumsService {
@@ -10,18 +11,18 @@ export class AlbumsService {
 
   public deletedId = this.albumsToDeleteSubject.asObservable();
 
-  public async getAllAlbums(
-    limit?: number,
-    offset = 0,
-  ): Promise<AlbumsResponse> {
-    return {
-      items: limit
-        ? this.albums.slice(limit * offset, limit * (offset + 1))
-        : this.albums,
-      limit: limit ?? null,
-      total: this.albums.length,
-      offset,
-    };
+  constructor(private artistsService: ArtistsService) {
+    this.artistsService.deletedId.subscribe((id) => {
+      this.albums.forEach((album) => {
+        if (album.artistId === id) {
+          album.artistId = null;
+        }
+      });
+    });
+  }
+
+  public async getAllAlbums(): Promise<Album[]> {
+    return this.albums;
   }
 
   public async addOneAlbum(albumInfo: AlbumDto) {

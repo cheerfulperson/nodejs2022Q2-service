@@ -10,7 +10,6 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
-  Query,
 } from '@nestjs/common';
 import { TrackDto } from './models/tracks.model';
 import { TracksService } from './services/tracks.service';
@@ -20,11 +19,8 @@ export class TracksController {
   constructor(private tracksService: TracksService) {}
 
   @Get()
-  public tracks(
-    @Query('limit') limit: number,
-    @Query('offset') offset: number,
-  ) {
-    return this.tracksService.getAllTracks(limit, offset);
+  public tracks() {
+    return this.tracksService.getAllTracks();
   }
 
   @Get(':id')

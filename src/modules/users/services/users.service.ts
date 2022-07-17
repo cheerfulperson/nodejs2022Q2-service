@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -7,7 +8,7 @@ import {
   CreateUserDto,
   UpdatePasswordDto,
   User,
-  UsersResponse,
+  UserResponse,
 } from '../models/user.modeils';
 import { v4 } from 'uuid';
 
@@ -15,24 +16,19 @@ import { v4 } from 'uuid';
 export class UsersService {
   private users: User[] = [];
 
-  public async getAllUsers(limit?: number, offset = 0): Promise<UsersResponse> {
+  public async getAllUsers(): Promise<UserResponse[]> {
     const users = this.users.map<Omit<User, 'password'>>((user) => {
       delete user.password;
       return user;
     });
-    return {
-      items: limit ? users.slice(limit * offset, limit * (offset + 1)) : users,
-      limit: limit ?? null,
-      total: this.users.length,
-      offset,
-    };
+    return users;
   }
 
   public async addOneUser(newUser: CreateUserDto) {
     const user = {
       id: v4(),
       ...newUser,
-      version: 0,
+      version: 1,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
@@ -88,12 +84,20 @@ export class UsersService {
     return messages.length === 0 ? null : messages;
   }
 
-  public checkUserToUpdate(id: string, body: UpdatePasswordDto): void {
+  public async checkUserToUpdate(id: string, body: UpdatePasswordDto) {
     const user = this.users.find((user) => user.id === id);
+
+    if (
+      typeof body.oldPassword !== 'string' ||
+      typeof body.newPassword !== 'string'
+    ) {
+      throw new BadRequestException();
+    }
 
     if (!user) {
       throw new NotFoundException();
     }
+
     if (user.password !== body.oldPassword) {
       throw new ForbiddenException();
     }

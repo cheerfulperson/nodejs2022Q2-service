@@ -10,7 +10,6 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
-  Query,
 } from '@nestjs/common';
 import { ArtistDto } from './models/artists.models';
 import { ArtistsService } from './services/artists.service';
@@ -20,11 +19,8 @@ export class ArtistsController {
   constructor(private artistsService: ArtistsService) {}
 
   @Get()
-  public artists(
-    @Query('limit') limit: number,
-    @Query('offset') offset: number,
-  ) {
-    return this.artistsService.getAllArtists(limit, offset);
+  public artists() {
+    return this.artistsService.getAllArtists();
   }
 
   @Get(':id')

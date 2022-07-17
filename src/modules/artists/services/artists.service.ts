@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Artist, ArtistDto, ArtistsResponse } from '../models/artists.models';
+import { Artist, ArtistDto } from '../models/artists.models';
 import { v4 } from 'uuid';
 import { Subject } from 'rxjs';
 
@@ -10,18 +10,8 @@ export class ArtistsService {
 
   public deletedId = this.artistToDeleteSubject.asObservable();
 
-  public async getAllArtists(
-    limit?: number,
-    offset = 0,
-  ): Promise<ArtistsResponse> {
-    return {
-      items: limit
-        ? this.artists.slice(limit * offset, limit * (offset + 1))
-        : this.artists,
-      limit: limit ?? null,
-      total: this.artists.length,
-      offset,
-    };
+  public async getAllArtists(): Promise<Artist[]> {
+    return this.artists;
   }
 
   public async addOneArtist(newArtist: ArtistDto) {
