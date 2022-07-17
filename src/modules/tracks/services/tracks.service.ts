@@ -40,8 +40,8 @@ export class TracksService {
         if (track.id === id) {
           track.name = body.name;
           track.duration = body.duration;
-          track.albumId = body.albumId;
-          track.artistId = body.artistId;
+          track.albumId = body.albumId ?? null;
+          track.artistId = body.artistId ?? null;
           res(track);
         }
       });
