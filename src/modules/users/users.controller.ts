@@ -2,14 +2,17 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
-import { CreateUserDto } from './models/user.modeils';
+import { CreateUserDto, UpdatePasswordDto } from './models/user.modeils';
 import { UsersService } from './services/users.service';
 import { validate } from 'uuid';
 
@@ -18,15 +21,12 @@ export class UsersController {
   constructor(private userService: UsersService) {}
 
   @Get()
-  public getArtists(
-    @Query('limit') limit: number,
-    @Query('offset') offset: number,
-  ) {
+  public users(@Query('limit') limit: number, @Query('offset') offset: number) {
     return this.userService.getAllUsers(limit, offset);
   }
 
   @Get(':id')
-  public async getArtist(@Param('id') id: string) {
+  public async user(@Param('id', new ParseUUIDPipe()) id: string) {
     const user = await this.userService.getOneUser(id);
 
     if (!validate(id)) {
@@ -40,12 +40,27 @@ export class UsersController {
 
   @Post()
   @HttpCode(201)
-  public async createArtist(@Body() usersInfo: CreateUserDto) {
+  public async createUser(@Body() usersInfo: CreateUserDto) {
     const invalidMessages = this.userService.checkNewUser(usersInfo);
     if (invalidMessages) {
       throw new BadRequestException(invalidMessages);
     }
 
     return this.userService.addOneUser(usersInfo);
+  }
+
+  @Put(':id')
+  public async updateUser(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() usersInfo: UpdatePasswordDto,
+  ) {
+    this.userService.checkUserToUpdate(id, usersInfo);
+    return this.userService.updateUser(id, usersInfo);
+  }
+
+  @Delete(':id')
+  @HttpCode(204)
+  public async deleteUser(@Param('id', new ParseUUIDPipe()) id: string) {
+    this.userService.deleteOneUser(id);
   }
 }

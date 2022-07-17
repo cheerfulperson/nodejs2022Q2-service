@@ -13,12 +13,13 @@ export interface CreateUserDto {
 }
 
 export interface UpdatePasswordDto {
-  oldPassowrd: string; // previous password
+  oldPassword: string; // previous password
   newPassword: string; // new password
 }
 
+export type UserResponse = Omit<User, 'password'>;
 export interface UsersResponse {
-  items: Omit<User, 'password'>[];
+  items: UserResponse[];
   limit: number;
   offset: number;
   total: number;

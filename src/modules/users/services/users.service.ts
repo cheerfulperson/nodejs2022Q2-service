@@ -1,5 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto, User, UsersResponse } from '../models/user.modeils';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  CreateUserDto,
+  UpdatePasswordDto,
+  User,
+  UsersResponse,
+} from '../models/user.modeils';
 import { v4 } from 'uuid';
 
 @Injectable()
@@ -42,6 +51,30 @@ export class UsersService {
     return user;
   }
 
+  public async updateUser(id: string, body: UpdatePasswordDto) {
+    return new Promise((res, rej) => {
+      this.users.forEach((user) => {
+        if (user.id === id) {
+          user.password = body.newPassword;
+          user.updatedAt = Date.now();
+          user.version += 1;
+          res({
+            id: user.id,
+            login: user.login,
+            version: user.version,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          });
+        }
+      });
+      rej();
+    });
+  }
+
+  public deleteOneUser(id: string) {
+    this.users = this.users.filter((user) => user.id !== id);
+  }
+
   public checkNewUser(newUser: CreateUserDto): string[] | null {
     const messages: string[] = [];
 
@@ -53,5 +86,16 @@ export class UsersService {
     }
 
     return messages.length === 0 ? null : messages;
+  }
+
+  public checkUserToUpdate(id: string, body: UpdatePasswordDto): void {
+    const user = this.users.find((user) => user.id === id);
+
+    if (!user) {
+      throw new NotFoundException();
+    }
+    if (user.password !== body.oldPassword) {
+      throw new ForbiddenException();
+    }
   }
 }
