@@ -14,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto, UpdatePasswordDto } from './models/user.modeils';
 import { UsersService } from './services/users.service';
-import { validate } from 'uuid';
 
 @Controller('user')
 export class UsersController {
@@ -29,12 +28,7 @@ export class UsersController {
   public async user(@Param('id', new ParseUUIDPipe()) id: string) {
     const user = await this.userService.getOneUser(id);
 
-    if (!validate(id)) {
-      throw new BadRequestException('Bad ID');
-    }
-    if (!user) {
-      throw new NotFoundException();
-    }
+    await this.checkUserExistence(id);
     return user;
   }
 
@@ -61,6 +55,15 @@ export class UsersController {
   @Delete(':id')
   @HttpCode(204)
   public async deleteUser(@Param('id', new ParseUUIDPipe()) id: string) {
+    await this.checkUserExistence(id);
     this.userService.deleteOneUser(id);
+  }
+
+  private async checkUserExistence(id: string) {
+    const user = await this.userService.getOneUser(id);
+
+    if (!user) {
+      throw new NotFoundException();
+    }
   }
 }
