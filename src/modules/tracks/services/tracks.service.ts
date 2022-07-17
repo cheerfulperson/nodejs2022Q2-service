@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { Subject } from 'rxjs';
 import { v4 } from 'uuid';
 import { Track, TrackDto, TracksResponse } from '../models/tracks.model';
 
 @Injectable()
 export class TracksService {
   private tracks: Track[] = [];
+  private tracksToDeleteSubject = new Subject<string>();
+
+  public deletedId = this.tracksToDeleteSubject.asObservable();
 
   public async getAllTracks(
     limit?: number,
@@ -50,6 +54,7 @@ export class TracksService {
   }
 
   public deleteOneTrack(id: string) {
+    this.tracksToDeleteSubject.next(id);
     this.tracks = this.tracks.filter((track) => track.id !== id);
   }
 

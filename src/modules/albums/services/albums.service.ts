@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { Subject } from 'rxjs';
 import { v4 } from 'uuid';
 import { Album, AlbumDto, AlbumsResponse } from '../models/album.model';
 
 @Injectable()
 export class AlbumsService {
   private albums: Album[] = [];
+  private albumsToDeleteSubject = new Subject<string>();
+
+  public deletedId = this.albumsToDeleteSubject.asObservable();
 
   public async getAllAlbums(
     limit?: number,
@@ -49,6 +53,7 @@ export class AlbumsService {
   }
 
   public deleteOneAlbum(id: string) {
+    this.albumsToDeleteSubject.next(id);
     this.albums = this.albums.filter((value) => value.id !== id);
   }
 

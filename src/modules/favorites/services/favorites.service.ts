@@ -24,7 +24,23 @@ export class FavoritesService {
     private artistsService: ArtistsService,
     private tracksService: TracksService,
     private albumsService: AlbumsService,
-  ) {}
+  ) {
+    this.artistsService.deletedId.subscribe((id) => {
+      if (this.favorites.artists.find((eId) => eId === id)) {
+        this.deleteArtistFromFav(id);
+      }
+    });
+    this.tracksService.deletedId.subscribe((id) => {
+      if (this.favorites.tracks.find((eId) => eId === id)) {
+        this.deleteTrackFromFav(id);
+      }
+    });
+    this.albumsService.deletedId.subscribe((id) => {
+      if (this.favorites.albums.find((eId) => eId === id)) {
+        this.deleteAlbumFromFav(id);
+      }
+    });
+  }
 
   public async getFavorites() {
     return {
