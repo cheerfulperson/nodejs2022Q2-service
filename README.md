@@ -17,3 +17,13 @@ git checkout -q docker
 ```
 docker-compose -p node-app up -d
 ```
+
+## Scan docker image 
+
+```
+npm run scan:image
+
+or
+
+docker scan node-app_rest
+```
