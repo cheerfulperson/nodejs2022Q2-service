@@ -11,7 +11,8 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { CreateUserDto, UpdatePasswordDto } from './models/user.modeils';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-user.dto';
 import { UsersService } from './services/users.service';
 
 @Controller('user')
@@ -47,7 +48,6 @@ export class UsersController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() usersInfo: UpdatePasswordDto,
   ) {
-    await this.userService.checkUserToUpdate(id, usersInfo);
     return this.userService.updateUser(id, usersInfo);
   }
 
