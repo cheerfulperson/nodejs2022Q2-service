@@ -1,73 +1,67 @@
-import { Injectable } from '@nestjs/common';
-import { Subject } from 'rxjs';
-import { AlbumsService } from 'src/modules/albums/services/albums.service';
-import { ArtistsService } from 'src/modules/artists/services/artists.service';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { FavoritesService } from 'src/modules/favorites/services/favorites.service';
+import { Repository } from 'typeorm';
 import { v4 } from 'uuid';
+import { TrackEntity } from '../entities/track.entity';
 import { Track, TrackDto } from '../models/tracks.model';
 
 @Injectable()
 export class TracksService {
-  private tracks: Track[] = [];
-  private tracksToDeleteSubject = new Subject<string>();
-
-  public deletedId = this.tracksToDeleteSubject.asObservable();
-
   constructor(
-    private artistsService: ArtistsService,
-    private albumsService: AlbumsService,
-  ) {
-    this.artistsService.deletedId.subscribe((id) => {
-      this.tracks.forEach((track) => {
-        if (track.artistId === id) {
-          track.artistId = null;
-        }
-      });
+    @InjectRepository(TrackEntity)
+    private tracksRepository = new Repository<TrackEntity>(),
+    @Inject(forwardRef(() => FavoritesService))
+    private favService: FavoritesService,
+  ) {}
+
+  public async updateTrackEntity(where: Partial<Track>, isAlbum = false) {
+    const tracks = await this.tracksRepository.find({
+      where,
     });
-    this.albumsService.deletedId.subscribe((id) => {
-      this.tracks.forEach((track) => {
-        if (track.albumId === id) {
-          track.albumId = null;
-        }
-      });
+    tracks.forEach((track) => {
+      if (isAlbum) {
+        track.albumId = null;
+      } else {
+        track.artistId = null;
+      }
+      this.tracksRepository.save(track);
     });
   }
 
   public async getAllTracks(): Promise<Track[]> {
-    return this.tracks;
+    return this.tracksRepository.find();
   }
 
   public async addOneTrack(trackInfo: TrackDto) {
-    const track = {
+    const track = this.tracksRepository.create({
       id: v4(),
       ...trackInfo,
-    };
-    this.tracks.push(track);
-    return track;
+    });
+    return this.tracksRepository.save(track);
   }
 
   public async getOneTrack(id: string) {
-    const track = this.tracks.find((track) => track.id === id);
-    return track;
+    return this.tracksRepository.findOne({ where: { id } });
   }
 
   public async updateTrack(id: string, body: TrackDto) {
-    return new Promise((res, rej) => {
-      this.tracks.forEach((track) => {
-        if (track.id === id) {
-          track.name = body.name;
-          track.duration = body.duration;
-          track.albumId = body.albumId ?? null;
-          track.artistId = body.artistId ?? null;
-          res(track);
-        }
-      });
-      rej();
-    });
+    const track = await this.getOneTrack(id);
+    if (track) {
+      track.id = id;
+      track.name = body.name;
+      track.duration = body.duration;
+      track.albumId = body.albumId ?? null;
+      track.artistId = body.artistId ?? null;
+      return await this.tracksRepository.save(track);
+    }
   }
 
-  public deleteOneTrack(id: string) {
-    this.tracksToDeleteSubject.next(id);
-    this.tracks = this.tracks.filter((track) => track.id !== id);
+  public async deleteOneTrack(id: string) {
+    try {
+      await this.tracksRepository.delete({ id });
+      await this.favService.deleteTrackFromFav(id);
+    } catch (error) {}
   }
 
   public checkTrackInfo(track: TrackDto): string[] | null {

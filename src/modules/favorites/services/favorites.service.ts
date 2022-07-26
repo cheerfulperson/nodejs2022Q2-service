@@ -1,6 +1,8 @@
 import {
+  forwardRef,
   HttpException,
   HttpStatus,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -21,26 +23,13 @@ export class FavoritesService {
   };
 
   constructor(
+    @Inject(forwardRef(() => ArtistsService))
     private artistsService: ArtistsService,
+    @Inject(forwardRef(() => TracksService))
     private tracksService: TracksService,
+    @Inject(forwardRef(() => AlbumsService))
     private albumsService: AlbumsService,
-  ) {
-    this.artistsService.deletedId.subscribe((id) => {
-      if (this.favorites.artists.find((eId) => eId === id)) {
-        this.deleteArtistFromFav(id);
-      }
-    });
-    this.tracksService.deletedId.subscribe((id) => {
-      if (this.favorites.tracks.find((eId) => eId === id)) {
-        this.deleteTrackFromFav(id);
-      }
-    });
-    this.albumsService.deletedId.subscribe((id) => {
-      if (this.favorites.albums.find((eId) => eId === id)) {
-        this.deleteAlbumFromFav(id);
-      }
-    });
-  }
+  ) {}
 
   public async getFavorites() {
     return {

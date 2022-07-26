@@ -1,25 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { Subject } from 'rxjs';
-import { ArtistsService } from 'src/modules/artists/services/artists.service';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { FavoritesService } from 'src/modules/favorites/services/favorites.service';
+import { TracksService } from 'src/modules/tracks/services/tracks.service';
 import { v4 } from 'uuid';
 import { Album, AlbumDto } from '../models/album.model';
 
 @Injectable()
 export class AlbumsService {
   private albums: Album[] = [];
-  private albumsToDeleteSubject = new Subject<string>();
 
-  public deletedId = this.albumsToDeleteSubject.asObservable();
-
-  constructor(private artistsService: ArtistsService) {
-    this.artistsService.deletedId.subscribe((id) => {
-      this.albums.forEach((album) => {
-        if (album.artistId === id) {
-          album.artistId = null;
-        }
-      });
-    });
-  }
+  constructor(
+    @Inject(forwardRef(() => TracksService))
+    private tracksService: TracksService,
+    @Inject(forwardRef(() => FavoritesService))
+    private favService: FavoritesService,
+  ) {}
 
   public async getAllAlbums(): Promise<Album[]> {
     return this.albums;
@@ -53,9 +47,12 @@ export class AlbumsService {
     });
   }
 
-  public deleteOneAlbum(id: string) {
-    this.albumsToDeleteSubject.next(id);
+  public async deleteOneAlbum(id: string) {
     this.albums = this.albums.filter((value) => value.id !== id);
+    try {
+      await this.tracksService.updateTrackEntity({ albumId: id }, true);
+      await this.favService.deleteAlbumFromFav(id);
+    } catch (error) {}
   }
 
   public checkAlbumInfo(album: AlbumDto): string[] | null {

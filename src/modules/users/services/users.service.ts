@@ -10,6 +10,7 @@ import { UpdatePasswordDto } from '../dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from '../entities/user.entity';
 import { Repository } from 'typeorm';
+import { validate } from 'uuid';
 
 @Injectable()
 export class UsersService {
@@ -35,21 +36,31 @@ export class UsersService {
   }
 
   public async getOneUser(id: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (user) {
-      return user.toResponse();
+    if (validate(id)) {
+      const user = await this.userRepository.findOne({ where: { id } });
+      if (user) {
+        return user.toResponse();
+      }
     }
   }
 
   public async updateUser(id: string, body: UpdatePasswordDto) {
+    const message = 'forbidden';
     try {
       const user = await this.userRepository.findOne({ where: { id } });
+      if (user.password !== body.oldPassword) {
+        throw new Error(message);
+      }
+      user.id = id;
       user.password = body.newPassword;
       user.updatedAt = Date.now();
       user.version += 1;
       return (await this.userRepository.save(user)).toResponse();
     } catch (error) {
-      throw new ForbiddenException('Old passwor was invalid');
+      if (error.message === message) {
+        throw new ForbiddenException('Old passwor was invalid');
+      }
+      throw new InternalServerErrorException();
     }
   }
 

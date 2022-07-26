@@ -51,12 +51,10 @@ export class TracksController {
     if (invalidMessages) {
       throw new BadRequestException(invalidMessages);
     }
-    try {
-      const artist = await this.tracksService.updateTrack(id, artistsInfo);
-      return artist;
-    } catch (error) {
-      await this.checkTrackExistence(id);
-    }
+    await this.checkTrackExistence(id);
+
+    const artist = await this.tracksService.updateTrack(id, artistsInfo);
+    return artist;
   }
 
   @Delete(':id')

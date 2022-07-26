@@ -1,5 +1,4 @@
 import { ConnectionOptions } from 'typeorm';
-import { UserEntity } from './modules/users/entities/user.entity';
 import 'dotenv/config';
 
 export default {
@@ -12,6 +11,6 @@ export default {
   database: process.env.POSTGRES_DATABASE as string,
   synchronize: false,
   logging: false,
-  entities: [UserEntity],
+  entities: ['./src/**/entities/**.entity.ts'],
   migrations: ['./src/migrations/*.ts'],
 } as ConnectionOptions;

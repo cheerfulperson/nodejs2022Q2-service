@@ -48,7 +48,8 @@ export class UsersController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() usersInfo: UpdatePasswordDto,
   ) {
-    return this.userService.updateUser(id, usersInfo);
+    await this.checkUserExistence(id);
+    return await this.userService.updateUser(id, usersInfo);
   }
 
   @Delete(':id')

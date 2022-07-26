@@ -15,10 +15,10 @@ export class UserEntity {
   @Column()
   public version: number;
 
-  @Column()
+  @Column('bigint')
   public createdAt: number;
 
-  @Column()
+  @Column('bigint')
   public updatedAt: number;
 
   public toResponse(): UserResponse {
@@ -26,8 +26,8 @@ export class UserEntity {
       id: this.id,
       login: this.login,
       version: this.version,
-      createdAt: this.createdAt,
-      updatedAt: this.updatedAt,
+      createdAt: parseInt(`${this.createdAt}`),
+      updatedAt: parseInt(`${this.updatedAt}`),
     };
   }
 }
