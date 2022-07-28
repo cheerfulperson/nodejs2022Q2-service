@@ -48,7 +48,9 @@ export class FavoritesController {
 
   @Post('artist/:id')
   @HttpCode(201)
-  public addArtistToFavorites(@Param('id', new ParseUUIDPipe()) id: string) {
+  public async addArtistToFavorites(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.favService.addArtistToFav(id);
   }
 
