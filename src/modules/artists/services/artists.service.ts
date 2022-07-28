@@ -3,12 +3,15 @@ import { Artist, ArtistDto } from '../models/artists.models';
 import { v4 } from 'uuid';
 import { TracksService } from 'src/modules/tracks/services/tracks.service';
 import { FavoritesService } from 'src/modules/favorites/services/favorites.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ArtistEntity } from '../entities/artist.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class ArtistsService {
-  private artists: Artist[] = [];
-
   constructor(
+    @InjectRepository(ArtistEntity)
+    private artistsRepository = new Repository<ArtistEntity>(),
     @Inject(forwardRef(() => TracksService))
     private tracksService: TracksService,
     @Inject(forwardRef(() => FavoritesService))
@@ -16,7 +19,7 @@ export class ArtistsService {
   ) {}
 
   public async getAllArtists(): Promise<Artist[]> {
-    return this.artists;
+    return this.artistsRepository.find();
   }
 
   public async addOneArtist(newArtist: ArtistDto) {
@@ -24,30 +27,25 @@ export class ArtistsService {
       id: v4(),
       ...newArtist,
     };
-    this.artists.push(artist);
-    return artist;
+    const artistEntity = this.artistsRepository.create(artist);
+    return this.artistsRepository.save(artistEntity);
   }
 
   public async getOneArtist(id: string) {
-    const artist = this.artists.find((artist) => artist.id === id);
-    return artist;
+    return this.artistsRepository.findOne({ where: { id } });
   }
 
   public async updateArtist(id: string, body: ArtistDto) {
-    return new Promise((res, rej) => {
-      this.artists.forEach((artist) => {
-        if (artist.id === id) {
-          artist.name = body.name;
-          artist.grammy = body.grammy;
-          res(artist);
-        }
-      });
-      rej();
-    });
+    const artist = await this.getOneArtist(id);
+    artist.id = id;
+    artist.name = body.name;
+    artist.grammy = body.grammy;
+
+    return this.artistsRepository.save(artist);
   }
 
   public async deleteOneArtist(id: string) {
-    this.artists = this.artists.filter((artist) => artist.id !== id);
+    await this.artistsRepository.delete(id);
     try {
       await this.tracksService.updateTrackEntity({ artistId: id });
       await this.favService.deleteArtistFromFav(id);
