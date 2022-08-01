@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,7 +10,8 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { AlbumDto } from './models/album.model';
+import { CreateAlbumDto } from './dto/create-album.dto';
+import { UpdateAlbumDto } from './dto/update-album.dto';
 import { AlbumsService } from './services/albums.service';
 
 @Controller('album')
@@ -33,24 +33,15 @@ export class AlbumsController {
 
   @Post()
   @HttpCode(201)
-  public async createAlbum(@Body() artistsInfo: AlbumDto) {
-    const invalidMessages = this.albumsService.checkAlbumInfo(artistsInfo);
-    if (invalidMessages) {
-      throw new BadRequestException(invalidMessages);
-    }
-
+  public async createAlbum(@Body() artistsInfo: CreateAlbumDto) {
     return this.albumsService.addOneAlbum(artistsInfo);
   }
 
   @Put(':id')
   public async updateAlbum(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() artistsInfo: AlbumDto,
+    @Body() artistsInfo: UpdateAlbumDto,
   ) {
-    const invalidMessages = this.albumsService.checkAlbumInfo(artistsInfo);
-    if (invalidMessages) {
-      throw new BadRequestException(invalidMessages);
-    }
     try {
       const artist = await this.albumsService.updateOneAlbum(id, artistsInfo);
       return artist;

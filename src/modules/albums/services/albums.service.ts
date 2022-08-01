@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Subject } from 'rxjs';
 import { Repository } from 'typeorm';
 import { v4 } from 'uuid';
+import { CreateAlbumDto } from '../dto/create-album.dto';
+import { UpdateAlbumDto } from '../dto/update-album.dto';
 import { AlbumEntity } from '../entities/album.entity';
 import { AlbumDto } from '../models/album.model';
 
@@ -21,7 +23,7 @@ export class AlbumsService {
     return this.albumsRepository.find();
   }
 
-  public async addOneAlbum(albumInfo: AlbumDto) {
+  public async addOneAlbum(albumInfo: CreateAlbumDto) {
     const album = {
       id: v4(),
       ...albumInfo,
@@ -34,7 +36,7 @@ export class AlbumsService {
     return this.albumsRepository.findOne({ where: { id } });
   }
 
-  public async updateOneAlbum(id: string, body: AlbumDto) {
+  public async updateOneAlbum(id: string, body: UpdateAlbumDto) {
     const album = await this.getOneAlbum(id);
 
     album.id = id;

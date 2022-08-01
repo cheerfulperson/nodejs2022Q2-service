@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { Artist, ArtistDto } from '../models/artists.models';
+import { Artist } from '../models/artists.models';
 import { v4 } from 'uuid';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ArtistEntity } from '../entities/artist.entity';
 import { Repository } from 'typeorm';
 import { Subject } from 'rxjs';
+import { CreateArtistDto } from '../dto/create-artist.dto';
+import { UpdateArtistDto } from '../dto/update-artist.dto';
 
 @Injectable()
 export class ArtistsService {
@@ -21,7 +23,7 @@ export class ArtistsService {
     return this.artistsRepository.find();
   }
 
-  public async addOneArtist(newArtist: ArtistDto) {
+  public async addOneArtist(newArtist: CreateArtistDto) {
     const artist = {
       id: v4(),
       ...newArtist,
@@ -34,7 +36,7 @@ export class ArtistsService {
     return this.artistsRepository.findOne({ where: { id } });
   }
 
-  public async updateArtist(id: string, body: ArtistDto) {
+  public async updateArtist(id: string, body: UpdateArtistDto) {
     const artist = await this.getOneArtist(id);
     artist.id = id;
     artist.name = body.name;
@@ -46,18 +48,5 @@ export class ArtistsService {
   public async deleteOneArtist(id: string) {
     this.toDeleteSubject.next(id);
     await this.artistsRepository.delete(id);
-  }
-
-  public checkArtistInfo(artist: ArtistDto): string[] | null {
-    const messages: string[] = [];
-
-    if (typeof artist.grammy !== 'boolean') {
-      messages.push('Grammy is required field');
-    }
-    if (typeof artist.name !== 'string') {
-      messages.push('Name is required field');
-    }
-
-    return messages.length === 0 ? null : messages;
   }
 }

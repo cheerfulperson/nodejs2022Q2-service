@@ -6,7 +6,9 @@ import { ArtistsService } from 'src/modules/artists/services/artists.service';
 import { Repository } from 'typeorm';
 import { v4 } from 'uuid';
 import { TrackEntity } from '../entities/track.entity';
-import { Track, TrackDto } from '../models/tracks.model';
+import { Track } from '../models/tracks.model';
+import { CreateTrackDto } from '.././dto/create-track.dto';
+import { UpdateTrackDto } from '../dto/update-track.dto';
 
 @Injectable()
 export class TracksService {
@@ -46,7 +48,7 @@ export class TracksService {
     return this.tracksRepository.find();
   }
 
-  public async addOneTrack(trackInfo: TrackDto) {
+  public async addOneTrack(trackInfo: CreateTrackDto) {
     const track = this.tracksRepository.create({
       id: v4(),
       ...trackInfo,
@@ -58,7 +60,7 @@ export class TracksService {
     return this.tracksRepository.findOne({ where: { id } });
   }
 
-  public async updateTrack(id: string, body: TrackDto) {
+  public async updateTrack(id: string, body: UpdateTrackDto) {
     const track = await this.getOneTrack(id);
     if (track) {
       track.id = id;
@@ -73,17 +75,5 @@ export class TracksService {
   public async deleteOneTrack(id: string) {
     this.toDeleteSubject.next(id);
     await this.tracksRepository.delete({ id });
-  }
-
-  public checkTrackInfo(track: TrackDto): string[] | null {
-    const messages: string[] = [];
-
-    if (typeof track.name !== 'string') {
-      messages.push('name is required field');
-    }
-    if (typeof track.duration !== 'number') {
-      messages.push('duration is required field');
-    }
-    return messages.length === 0 ? null : messages;
   }
 }
