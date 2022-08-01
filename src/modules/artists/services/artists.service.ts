@@ -1,21 +1,20 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Artist, ArtistDto } from '../models/artists.models';
 import { v4 } from 'uuid';
-import { TracksService } from 'src/modules/tracks/services/tracks.service';
-import { FavoritesService } from 'src/modules/favorites/services/favorites.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ArtistEntity } from '../entities/artist.entity';
 import { Repository } from 'typeorm';
+import { Subject } from 'rxjs';
 
 @Injectable()
 export class ArtistsService {
+  private toDeleteSubject = new Subject<string>();
+
+  public deletedId = this.toDeleteSubject.asObservable();
+
   constructor(
     @InjectRepository(ArtistEntity)
     private artistsRepository = new Repository<ArtistEntity>(),
-    @Inject(forwardRef(() => TracksService))
-    private tracksService: TracksService,
-    @Inject(forwardRef(() => FavoritesService))
-    private favService: FavoritesService,
   ) {}
 
   public async getAllArtists(): Promise<Artist[]> {
@@ -45,11 +44,8 @@ export class ArtistsService {
   }
 
   public async deleteOneArtist(id: string) {
+    this.toDeleteSubject.next(id);
     await this.artistsRepository.delete(id);
-    try {
-      await this.tracksService.updateTrackEntity({ artistId: id });
-      await this.favService.deleteArtistFromFav(id);
-    } catch (error) {}
   }
 
   public checkArtistInfo(artist: ArtistDto): string[] | null {

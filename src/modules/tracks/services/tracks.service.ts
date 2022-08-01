@@ -1,6 +1,8 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FavoritesService } from 'src/modules/favorites/services/favorites.service';
+import { Subject } from 'rxjs';
+import { AlbumsService } from 'src/modules/albums/services/albums.service';
+import { ArtistsService } from 'src/modules/artists/services/artists.service';
 import { Repository } from 'typeorm';
 import { v4 } from 'uuid';
 import { TrackEntity } from '../entities/track.entity';
@@ -8,12 +10,23 @@ import { Track, TrackDto } from '../models/tracks.model';
 
 @Injectable()
 export class TracksService {
+  private toDeleteSubject = new Subject<string>();
+
+  public deletedId = this.toDeleteSubject.asObservable();
+
   constructor(
     @InjectRepository(TrackEntity)
     private tracksRepository = new Repository<TrackEntity>(),
-    @Inject(forwardRef(() => FavoritesService))
-    private favService: FavoritesService,
-  ) {}
+    private albumServie: AlbumsService,
+    private artistService: ArtistsService,
+  ) {
+    this.albumServie.deletedId.subscribe((id) => {
+      this.updateTrackEntity({ albumId: id }, true);
+    });
+    this.artistService.deletedId.subscribe((id) => {
+      this.updateTrackEntity({ artistId: id });
+    });
+  }
 
   public async updateTrackEntity(where: Partial<Track>, isAlbum = false) {
     const tracks = await this.tracksRepository.find({
@@ -58,10 +71,8 @@ export class TracksService {
   }
 
   public async deleteOneTrack(id: string) {
-    try {
-      await this.tracksRepository.delete({ id });
-      await this.favService.deleteTrackFromFav(id);
-    } catch (error) {}
+    this.toDeleteSubject.next(id);
+    await this.tracksRepository.delete({ id });
   }
 
   public checkTrackInfo(track: TrackDto): string[] | null {
