@@ -17,6 +17,7 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, parse(document));
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+
   await app.listen(port);
   console.log(`App started on http://localhost:${port}`);
 }
