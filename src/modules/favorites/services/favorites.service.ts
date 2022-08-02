@@ -4,56 +4,55 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Album } from 'src/modules/albums/models/album.model';
+import { InjectRepository } from '@nestjs/typeorm';
 import { AlbumsService } from 'src/modules/albums/services/albums.service';
-import { Artist } from 'src/modules/artists/models/artists.models';
 import { ArtistsService } from 'src/modules/artists/services/artists.service';
-import { Track } from 'src/modules/tracks/models/tracks.model';
 import { TracksService } from 'src/modules/tracks/services/tracks.service';
-import { Favorites } from '../models/favorites.model';
+import { Repository } from 'typeorm';
+import { FavoriteEntity } from '../entities/favorites.entity';
 
 @Injectable()
 export class FavoritesService {
-  private favorites: Favorites = {
-    albums: [],
-    artists: [],
-    tracks: [],
-  };
+  private userId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 
   constructor(
+    @InjectRepository(FavoriteEntity)
+    private favoritesRepository = new Repository<FavoriteEntity>(),
     private artistsService: ArtistsService,
     private tracksService: TracksService,
     private albumsService: AlbumsService,
   ) {
+    this.onInit();
+  }
+
+  private async onInit() {
+    const favorites = await this.getFavoritesIds();
     this.artistsService.deletedId.subscribe((id) => {
-      if (this.favorites.artists.find((eId) => eId === id)) {
+      if (favorites.artists.find((eId) => eId === id)) {
         this.deleteArtistFromFav(id);
       }
     });
     this.tracksService.deletedId.subscribe((id) => {
-      if (this.favorites.tracks.find((eId) => eId === id)) {
+      if (favorites.tracks.find((eId) => eId === id)) {
         this.deleteTrackFromFav(id);
       }
     });
     this.albumsService.deletedId.subscribe((id) => {
-      if (this.favorites.albums.find((eId) => eId === id)) {
+      if (favorites.albums.find((eId) => eId === id)) {
         this.deleteAlbumFromFav(id);
       }
     });
   }
 
   public async getFavorites() {
-    return {
-      albums: (await this.getEntityByIds(this.favorites.albums, (id) =>
-        this.albumsService.getOneAlbum(id),
-      )) as Album[],
-      tracks: (await this.getEntityByIds(this.favorites.tracks, (id) =>
-        this.tracksService.getOneTrack(id),
-      )) as Track[],
-      artists: (await this.getEntityByIds(this.favorites.artists, (id) =>
-        this.artistsService.getOneArtist(id),
-      )) as Artist[],
-    };
+    return new Promise(async (res) => {
+      const favorites = await this.getFavoritesIds();
+      res({
+        albums: await this.albumsService.getAlbumsByIds(favorites.albums),
+        tracks: await this.tracksService.getTracksByIds(favorites.tracks),
+        artists: await this.artistsService.getArtistsbyIds(favorites.artists),
+      });
+    });
   }
 
   public async addAlbumToFav(id: string) {
@@ -64,19 +63,24 @@ export class FavoritesService {
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
-    this.favorites.albums.push(id);
+    const favorites = await this.getFavoritesIds();
+    favorites.pushAlbum(id);
+    await this.favoritesRepository.save(favorites);
     return album;
   }
 
   public async deleteAlbumFromFav(id: string) {
-    const albumId = this.favorites.albums.find((cId) => cId === id);
+    const albumId = (await this.getFavoritesIds()).albums.find(
+      (aid) => aid === id,
+    );
 
     if (!albumId) {
       throw new NotFoundException(`Album is not favorite`);
     }
-    this.favorites.albums = this.favorites.albums.filter(
-      (albumId) => albumId !== id,
-    );
+
+    const favorites = await this.getFavoritesIds();
+    favorites.removeAlbum(id);
+    await this.favoritesRepository.save(favorites);
   }
 
   public async addTrackToFav(id: string) {
@@ -87,17 +91,22 @@ export class FavoritesService {
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
-    this.favorites.tracks.push(id);
+    const favorites = await this.getFavoritesIds();
+    favorites.pushTrack(id);
+    await this.favoritesRepository.save(favorites);
     return track;
   }
 
   public async deleteTrackFromFav(id: string) {
-    const trackId = this.favorites.tracks.find((cId) => cId === id);
-
+    const trackId = (await this.getFavoritesIds()).tracks.find(
+      (tid) => tid === id,
+    );
     if (!trackId) {
       throw new NotFoundException(`Track is not favorite`);
     }
-    this.favorites.tracks = this.favorites.tracks.filter((eId) => eId !== id);
+    const favorites = await this.getFavoritesIds();
+    favorites.removeTrack(id);
+    await this.favoritesRepository.save(favorites);
   }
 
   public async addArtistToFav(id: string) {
@@ -108,17 +117,22 @@ export class FavoritesService {
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }
-    this.favorites.artists.push(id);
+    const favorites = await this.getFavoritesIds();
+    favorites.pushArtist(id);
+    await this.favoritesRepository.save(favorites);
     return artist;
   }
 
   public async deleteArtistFromFav(id: string) {
-    const artistId = this.favorites.artists.find((cId) => cId === id);
-
+    const artistId = (await this.getFavoritesIds()).artists.find(
+      (aid) => aid === id,
+    );
     if (!artistId) {
       throw new NotFoundException(`Artist is not favorite`);
     }
-    this.favorites.artists = this.favorites.artists.filter((eId) => eId !== id);
+    const favorites = await this.getFavoritesIds();
+    favorites.removeArist(id);
+    await this.favoritesRepository.save(favorites);
   }
 
   private async getEntityByIds(
@@ -132,5 +146,22 @@ export class FavoritesService {
           return entity.value;
         }
       });
+  }
+
+  private async getFavoritesIds() {
+    const favs = await this.favoritesRepository.findOne({
+      where: { userId: this.userId },
+    });
+    if (!favs) {
+      return this.createFavoritesCollection(this.userId);
+    }
+    return favs;
+  }
+
+  private async createFavoritesCollection(userId: string) {
+    const favoriteEntity = this.favoritesRepository.create({
+      userId,
+    });
+    return this.favoritesRepository.save(favoriteEntity);
   }
 }

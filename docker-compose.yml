@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  rest:
+    container_name: rest
+    build: 
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DATABASE}
+    env_file: .env
+    ports:
+      - ${PORT}:${PORT}
+    restart: always
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - app-network
+    command: sh -c "npm run typeorm:run && npm run start:dev"
+
+  postgres:
+    image: postgres:alpine3.15
+    container_name: postgres
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: ${POSTGRES_DATABASE}
+      POSTGRES_DB: ${POSTGRES_DATABASE}
+      PGDATA: /data/postgres
+    ports:
+      - ${POSTGRES_PORT}:5432
+    volumes:
+      - pgdb:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - app-network
+volumes:
+  app:
+  pgdb:
+networks:
+  app-network:
+    name: custom-network
+    driver: bridge

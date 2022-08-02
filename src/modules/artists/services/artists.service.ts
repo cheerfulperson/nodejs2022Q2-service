@@ -1,61 +1,56 @@
 import { Injectable } from '@nestjs/common';
-import { Artist, ArtistDto } from '../models/artists.models';
+import { Artist } from '../models/artists.models';
 import { v4 } from 'uuid';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ArtistEntity } from '../entities/artist.entity';
+import { Repository } from 'typeorm';
 import { Subject } from 'rxjs';
+import { CreateArtistDto } from '../dto/create-artist.dto';
+import { UpdateArtistDto } from '../dto/update-artist.dto';
 
 @Injectable()
 export class ArtistsService {
-  private artists: Artist[] = [];
-  private artistToDeleteSubject = new Subject<string>();
+  private toDeleteSubject = new Subject<string>();
 
-  public deletedId = this.artistToDeleteSubject.asObservable();
+  public deletedId = this.toDeleteSubject.asObservable();
+
+  constructor(
+    @InjectRepository(ArtistEntity)
+    private artistsRepository = new Repository<ArtistEntity>(),
+  ) {}
 
   public async getAllArtists(): Promise<Artist[]> {
-    return this.artists;
+    return this.artistsRepository.find();
   }
 
-  public async addOneArtist(newArtist: ArtistDto) {
+  public async addOneArtist(newArtist: CreateArtistDto) {
     const artist = {
       id: v4(),
       ...newArtist,
     };
-    this.artists.push(artist);
-    return artist;
+    const artistEntity = this.artistsRepository.create(artist);
+    return this.artistsRepository.save(artistEntity);
   }
 
   public async getOneArtist(id: string) {
-    const artist = this.artists.find((artist) => artist.id === id);
-    return artist;
+    return this.artistsRepository.findOne({ where: { id } });
   }
 
-  public async updateArtist(id: string, body: ArtistDto) {
-    return new Promise((res, rej) => {
-      this.artists.forEach((artist) => {
-        if (artist.id === id) {
-          artist.name = body.name;
-          artist.grammy = body.grammy;
-          res(artist);
-        }
-      });
-      rej();
-    });
+  public async updateArtist(id: string, body: UpdateArtistDto) {
+    const artist = await this.getOneArtist(id);
+    artist.id = id;
+    artist.name = body.name;
+    artist.grammy = body.grammy;
+
+    return this.artistsRepository.save(artist);
   }
 
-  public deleteOneArtist(id: string) {
-    this.artistToDeleteSubject.next(id);
-    this.artists = this.artists.filter((artist) => artist.id !== id);
+  public async deleteOneArtist(id: string) {
+    this.toDeleteSubject.next(id);
+    await this.artistsRepository.delete(id);
   }
 
-  public checkArtistInfo(artist: ArtistDto): string[] | null {
-    const messages: string[] = [];
-
-    if (typeof artist.grammy !== 'boolean') {
-      messages.push('Grammy is required field');
-    }
-    if (typeof artist.name !== 'string') {
-      messages.push('Name is required field');
-    }
-
-    return messages.length === 0 ? null : messages;
+  public getArtistsbyIds(ids: string[]) {
+    return this.artistsRepository.findByIds(ids);
   }
 }
