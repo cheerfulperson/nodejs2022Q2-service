@@ -21,12 +21,18 @@ export class AuthGuard implements CanActivate {
         'allowUnauthorizedRequest',
         context.getHandler(),
       ) ?? false;
+
     if (allowUnauthorizedRequest) {
       return true;
     }
-    if (!(await this.authService.verify(bearer?.split(' ')[1] || ''))) {
+    if (
+      !(await this.authService.verify(bearer?.split(' ')[1] || '')) ||
+      bearer?.split(' ')[0] !== 'Bearer'
+    ) {
+      console.log(bearer?.split(' '), 'UnauthorizedException');
       throw new UnauthorizedException();
     }
+
     return true;
   }
 }

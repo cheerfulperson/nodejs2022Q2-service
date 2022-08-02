@@ -131,9 +131,11 @@ paths:
               properties:
                 login:
                   type: string
+                  value: logins
                   description: Username
                 password:
                   type: string
+                  value: qwe123
                   description: Password
               required:
                 - user
@@ -155,7 +157,6 @@ paths:
     post:
       tags:
         - Refresh
-      security: []
       summary: Refresh
       description: Refresh a user
       requestBody:
@@ -166,24 +167,16 @@ paths:
               type: object
               title: example
               properties:
-                login:
+                refreshToken:
                   type: string
-                  minLength: 3
-                  maxLength: 255
-                  description: Username
-                password:
-                  type: string
-                  format: password
-                  pattern: ^[a-zA-Z0-9]{3,30}
-                  description: Password
+                  description: refreshToken
               required:
-                - login
-                - password
+                - refreshToken
       responses:
         204:
           description: Successful Refresh
-        400:
-          description: Bad request
+        401:
+          $ref: '#/components/responses/UnauthorizedError'
         403:
           description: Token expired
   /auth/signup:
@@ -202,12 +195,12 @@ paths:
               title: example
               properties:
                 login:
-                  type: string
+                  type: logins
                   minLength: 3
                   maxLength: 255
                   description: Username
                 password:
-                  type: string
+                  type: qwe123
                   format: password
                   pattern: ^[a-zA-Z0-9]{3,30}
                   description: Password

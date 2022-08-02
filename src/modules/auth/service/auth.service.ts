@@ -69,7 +69,23 @@ export class AuthService {
     }
   }
 
-  private getAuthData(user: UserResponse) {
+  public async refreshUserToken(refreshToken: string) {
+    try {
+      const jwtInfo = await this.jwtService.verifyAsync<JwtModel | undefined>(
+        refreshToken,
+        refreshTokenOptions,
+      );
+      const user = await this.userService.getOneUser(jwtInfo.id);
+      if (user.login !== jwtInfo.login) {
+        throw new Error();
+      }
+      return this.getAuthData({ id: user.id, login: user.login });
+    } catch (error) {
+      throw new ForbiddenException('Refresh token is invalid or expired');
+    }
+  }
+
+  private getAuthData(user: Partial<UserResponse>) {
     const payload = { id: user.id, login: user.login };
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, refreshTokenOptions);
