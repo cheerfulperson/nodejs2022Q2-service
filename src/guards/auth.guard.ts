@@ -1,21 +1,32 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { IncomingMessage } from 'http';
 import { AuthService } from 'src/modules/auth/service/auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req: IncomingMessage = context.switchToHttp().getRequest();
     const bearer: string | undefined =
       req.headers['authorization'] || (req.headers['Authorization'] as string);
-    console.log(
-      await this.authService.verify(
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImJlZTdkYWZjLWRiODItNDAyNi1hZTE3LWUzNzI3YzBkNTY4ZSIsImxvZ2luIjoic3RyaW5nIiwiaWF0IjoxNjU5Mzg5ODI2LCJleHAiOjE2NTkzOTM0MjZ9.xjH8udHsw40yLgEX4C2FxhnLWWWvsrKPe-G8ZPb3V_Q',
-      ),
-      req.url,
-    );
+    const allowUnauthorizedRequest =
+      this.reflector.get<boolean | undefined>(
+        'allowUnauthorizedRequest',
+        context.getHandler(),
+      ) ?? false;
+    if (allowUnauthorizedRequest) {
+      return true;
+    }
+    if (!(await this.authService.verify(bearer?.split(' ')[1] || ''))) {
+      throw new UnauthorizedException();
+    }
     return true;
   }
 }

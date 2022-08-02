@@ -1,7 +1,7 @@
 export interface ResponseAuthData {
   id: string;
   login: string;
-  token: string;
+  accessToken: string;
   refreshToken: string;
 }
 

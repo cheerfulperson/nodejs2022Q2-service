@@ -76,4 +76,8 @@ export class TracksService {
     this.toDeleteSubject.next(id);
     await this.tracksRepository.delete({ id });
   }
+
+  public getTracksByIds(ids: string[]) {
+    return this.tracksRepository.findByIds(ids);
+  }
 }

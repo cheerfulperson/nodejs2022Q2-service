@@ -49,4 +49,8 @@ export class ArtistsService {
     this.toDeleteSubject.next(id);
     await this.artistsRepository.delete(id);
   }
+
+  public getArtistsbyIds(ids: string[]) {
+    return this.artistsRepository.findByIds(ids);
+  }
 }

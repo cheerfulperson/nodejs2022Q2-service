@@ -5,11 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Album } from 'src/modules/albums/models/album.model';
 import { AlbumsService } from 'src/modules/albums/services/albums.service';
-import { Artist } from 'src/modules/artists/models/artists.models';
 import { ArtistsService } from 'src/modules/artists/services/artists.service';
-import { Track } from 'src/modules/tracks/models/tracks.model';
 import { TracksService } from 'src/modules/tracks/services/tracks.service';
 import { Repository } from 'typeorm';
 import { FavoriteEntity } from '../entities/favorites.entity';
@@ -48,18 +45,14 @@ export class FavoritesService {
   }
 
   public async getFavorites() {
-    const favorites = await this.getFavoritesIds();
-    return {
-      albums: (await this.getEntityByIds(favorites.albums, (id) =>
-        this.albumsService.getOneAlbum(id),
-      )) as Album[],
-      tracks: (await this.getEntityByIds(favorites.tracks, (id) =>
-        this.tracksService.getOneTrack(id),
-      )) as Track[],
-      artists: (await this.getEntityByIds(favorites.artists, (id) =>
-        this.artistsService.getOneArtist(id),
-      )) as Artist[],
-    };
+    return new Promise(async (res) => {
+      const favorites = await this.getFavoritesIds();
+      res({
+        albums: await this.albumsService.getAlbumsByIds(favorites.albums),
+        tracks: await this.tracksService.getTracksByIds(favorites.tracks),
+        artists: await this.artistsService.getArtistsbyIds(favorites.artists),
+      });
+    });
   }
 
   public async addAlbumToFav(id: string) {

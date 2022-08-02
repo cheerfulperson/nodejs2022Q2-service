@@ -6,7 +6,6 @@ import { v4 } from 'uuid';
 import { CreateAlbumDto } from '../dto/create-album.dto';
 import { UpdateAlbumDto } from '../dto/update-album.dto';
 import { AlbumEntity } from '../entities/album.entity';
-import { AlbumDto } from '../models/album.model';
 
 @Injectable()
 export class AlbumsService {
@@ -59,15 +58,7 @@ export class AlbumsService {
     }
   }
 
-  public checkAlbumInfo(album: AlbumDto): string[] | null {
-    const messages: string[] = [];
-
-    if (typeof album.name !== 'string') {
-      messages.push('name is required field');
-    }
-    if (typeof album.year !== 'number') {
-      messages.push('year is required field');
-    }
-    return messages.length === 0 ? null : messages;
+  public getAlbumsByIds(ids: string[]) {
+    return this.albumsRepository.findByIds(ids);
   }
 }

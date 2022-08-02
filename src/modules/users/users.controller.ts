@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -35,11 +34,6 @@ export class UsersController {
   @Post()
   @HttpCode(201)
   public async createUser(@Body() usersInfo: CreateUserDto) {
-    const invalidMessages = this.userService.checkNewUser(usersInfo);
-    if (invalidMessages) {
-      throw new BadRequestException(invalidMessages);
-    }
-
     return this.userService.addOneUser(usersInfo);
   }
 

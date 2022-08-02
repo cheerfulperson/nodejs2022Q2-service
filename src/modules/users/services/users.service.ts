@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { UserResponse } from '../models/user.models';
+import { User, UserResponse } from '../models/user.models';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdatePasswordDto } from '../dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -73,16 +73,8 @@ export class UsersService {
     return result;
   }
 
-  public checkNewUser(newUser: CreateUserDto): string[] | null {
-    const messages: string[] = [];
-
-    if (!newUser.login || typeof newUser.login !== 'string') {
-      messages.push('Login is required field');
-    }
-    if (!newUser.password || typeof newUser.password !== 'string') {
-      messages.push('Password is required field');
-    }
-
-    return messages.length === 0 ? null : messages;
+  public async getUserByFields(userEntity: Partial<User>) {
+    const user = await this.userRepository.findOne({ where: userEntity });
+    return user?.getUserInfo() ?? null;
   }
 }

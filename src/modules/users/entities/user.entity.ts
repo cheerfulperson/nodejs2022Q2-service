@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { UserResponse } from '../models/user.models';
+import { User, UserResponse } from '../models/user.models';
 
 @Entity('user')
 export class UserEntity {
@@ -26,6 +26,17 @@ export class UserEntity {
       id: this.id,
       login: this.login,
       version: this.version,
+      createdAt: parseInt(`${this.createdAt}`),
+      updatedAt: parseInt(`${this.updatedAt}`),
+    };
+  }
+
+  public getUserInfo(): User {
+    return {
+      id: this.id,
+      login: this.login,
+      version: this.version,
+      password: this.password,
       createdAt: parseInt(`${this.createdAt}`),
       updatedAt: parseInt(`${this.updatedAt}`),
     };

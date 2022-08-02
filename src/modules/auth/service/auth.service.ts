@@ -1,7 +1,14 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserResponse } from 'src/modules/users/models/user.models';
 import { UsersService } from 'src/modules/users/services/users.service';
+import { CryptoService } from 'src/shared/crypto.service';
 import { SignupUserDto } from '../dto/signup-user.dto';
 import { refreshTokenOptions } from '../jwtconfig';
 import { ResponseAuthData } from '../models/auth.model';
@@ -13,31 +20,63 @@ export class AuthService {
     @Inject(forwardRef(() => UsersService))
     private userService: UsersService,
     private jwtService: JwtService,
+    private cryptoService: CryptoService,
   ) {}
 
   public async signupUser(userInfo: SignupUserDto) {
-    const user = await this.userService.addOneUser(userInfo);
+    const passwordHash = this.cryptoService.getHash(userInfo.password);
+    const userEntity = await this.userService.getUserByFields({
+      login: userInfo.login,
+    });
+    if (userEntity) {
+      throw new ConflictException('User with such login exist');
+    }
+    const user = await this.userService.addOneUser({
+      login: userInfo.login,
+      password: passwordHash,
+    });
+    return user;
+  }
+
+  public async authorize(userInfo: SignupUserDto) {
+    const pswHash = this.cryptoService.getHash(userInfo.password);
+    const user = await this.userService.getUserByFields({
+      login: userInfo.login,
+    });
+
+    if (!user) {
+      throw new ForbiddenException('No user with such login');
+    }
+    if (user.password !== pswHash) {
+      throw new ForbiddenException(
+        "Password or login doesn't match actual one",
+      );
+    }
+    delete user.password;
     return this.getAuthData(user);
   }
 
-  public authorize(userInfo: SignupUserDto) {}
-
   public async verify(token: string) {
-    const jwtInfo = this.jwtService.verify<JwtModel | undefined>(token);
-    if (!jwtInfo) return false;
+    try {
+      const jwtInfo = await this.jwtService.verifyAsync<JwtModel | undefined>(
+        token,
+      );
 
-    const user = await this.userService.getOneUser(jwtInfo.id);
-    return Boolean(user?.login);
+      const user = await this.userService.getOneUser(jwtInfo.id);
+      return Boolean(user?.login);
+    } catch (error) {
+      return false;
+    }
   }
 
   private getAuthData(user: UserResponse) {
     const payload = { id: user.id, login: user.login };
-    const token = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload);
     const refreshToken = this.jwtService.sign(payload, refreshTokenOptions);
     return {
       id: user.id,
       login: user.login,
-      token,
+      accessToken,
       refreshToken,
     } as ResponseAuthData;
   }
