@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,7 +10,8 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { CreateUserDto, UpdatePasswordDto } from './models/user.modeils';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdatePasswordDto } from './dto/update-user.dto';
 import { UsersService } from './services/users.service';
 
 @Controller('user')
@@ -34,11 +34,6 @@ export class UsersController {
   @Post()
   @HttpCode(201)
   public async createUser(@Body() usersInfo: CreateUserDto) {
-    const invalidMessages = this.userService.checkNewUser(usersInfo);
-    if (invalidMessages) {
-      throw new BadRequestException(invalidMessages);
-    }
-
     return this.userService.addOneUser(usersInfo);
   }
 
@@ -47,8 +42,8 @@ export class UsersController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() usersInfo: UpdatePasswordDto,
   ) {
-    await this.userService.checkUserToUpdate(id, usersInfo);
-    return this.userService.updateUser(id, usersInfo);
+    await this.checkUserExistence(id);
+    return await this.userService.updateUser(id, usersInfo);
   }
 
   @Delete(':id')

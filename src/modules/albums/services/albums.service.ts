@@ -1,72 +1,64 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Subject } from 'rxjs';
-import { ArtistsService } from 'src/modules/artists/services/artists.service';
+import { Repository } from 'typeorm';
 import { v4 } from 'uuid';
-import { Album, AlbumDto } from '../models/album.model';
+import { CreateAlbumDto } from '../dto/create-album.dto';
+import { UpdateAlbumDto } from '../dto/update-album.dto';
+import { AlbumEntity } from '../entities/album.entity';
 
 @Injectable()
 export class AlbumsService {
-  private albums: Album[] = [];
-  private albumsToDeleteSubject = new Subject<string>();
+  private albumToDeleteSubject = new Subject<string>();
 
-  public deletedId = this.albumsToDeleteSubject.asObservable();
+  public deletedId = this.albumToDeleteSubject.asObservable();
 
-  constructor(private artistsService: ArtistsService) {
-    this.artistsService.deletedId.subscribe((id) => {
-      this.albums.forEach((album) => {
-        if (album.artistId === id) {
-          album.artistId = null;
-        }
-      });
-    });
+  constructor(
+    @InjectRepository(AlbumEntity)
+    private albumsRepository = new Repository<AlbumEntity>(),
+  ) {}
+
+  public async getAllAlbums() {
+    return this.albumsRepository.find();
   }
 
-  public async getAllAlbums(): Promise<Album[]> {
-    return this.albums;
-  }
-
-  public async addOneAlbum(albumInfo: AlbumDto) {
+  public async addOneAlbum(albumInfo: CreateAlbumDto) {
     const album = {
       id: v4(),
       ...albumInfo,
     };
-    this.albums.push(album);
-    return album;
+    const albumEntity = this.albumsRepository.create(album);
+    return await this.albumsRepository.save(albumEntity);
   }
 
-  public async getOneAlbum(id: string) {
-    const album = this.albums.find((value) => value.id === id);
-    return album;
+  public getOneAlbum(id: string) {
+    return this.albumsRepository.findOne({ where: { id } });
   }
 
-  public async updateOneAlbum(id: string, body: AlbumDto) {
-    return new Promise((res, rej) => {
-      this.albums.forEach((album) => {
-        if (album.id === id) {
-          album.name = body.name;
-          album.artistId = body.artistId ?? null;
-          album.year = body.year;
-          res(album);
-        }
-      });
-      rej();
-    });
+  public async updateOneAlbum(id: string, body: UpdateAlbumDto) {
+    const album = await this.getOneAlbum(id);
+
+    album.id = id;
+    album.name = body.name;
+    album.artistId = body.artistId ?? null;
+    album.year = body.year;
+    return this.albumsRepository.save(album);
   }
 
-  public deleteOneAlbum(id: string) {
-    this.albumsToDeleteSubject.next(id);
-    this.albums = this.albums.filter((value) => value.id !== id);
+  public async deleteOneAlbum(id: string) {
+    this.albumToDeleteSubject.next(id);
+    await this.albumsRepository.delete(id);
   }
 
-  public checkAlbumInfo(album: AlbumDto): string[] | null {
-    const messages: string[] = [];
-
-    if (typeof album.name !== 'string') {
-      messages.push('name is required field');
+  public async deleteArtistId(artistId: string) {
+    const album = await this.albumsRepository.findOne({ where: { artistId } });
+    if (album) {
+      album.artistId = null;
+      this.albumsRepository.save(album);
     }
-    if (typeof album.year !== 'number') {
-      messages.push('year is required field');
-    }
-    return messages.length === 0 ? null : messages;
+  }
+
+  public getAlbumsByIds(ids: string[]) {
+    return this.albumsRepository.findByIds(ids);
   }
 }

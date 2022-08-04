@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,7 +10,8 @@ import {
   Post,
   Put,
 } from '@nestjs/common';
-import { TrackDto } from './models/tracks.model';
+import { CreateTrackDto } from './dto/create-track.dto';
+import { UpdateTrackDto } from './dto/update-track.dto';
 import { TracksService } from './services/tracks.service';
 
 @Controller('track')
@@ -33,30 +33,19 @@ export class TracksController {
 
   @Post()
   @HttpCode(201)
-  public async createTrack(@Body() artistsInfo: TrackDto) {
-    const invalidMessages = this.tracksService.checkTrackInfo(artistsInfo);
-    if (invalidMessages) {
-      throw new BadRequestException(invalidMessages);
-    }
-
+  public async createTrack(@Body() artistsInfo: CreateTrackDto) {
     return this.tracksService.addOneTrack(artistsInfo);
   }
 
   @Put(':id')
   public async updateTrack(
     @Param('id', new ParseUUIDPipe()) id: string,
-    @Body() artistsInfo: TrackDto,
+    @Body() artistsInfo: UpdateTrackDto,
   ) {
-    const invalidMessages = this.tracksService.checkTrackInfo(artistsInfo);
-    if (invalidMessages) {
-      throw new BadRequestException(invalidMessages);
-    }
-    try {
-      const artist = await this.tracksService.updateTrack(id, artistsInfo);
-      return artist;
-    } catch (error) {
-      await this.checkTrackExistence(id);
-    }
+    await this.checkTrackExistence(id);
+
+    const artist = await this.tracksService.updateTrack(id, artistsInfo);
+    return artist;
   }
 
   @Delete(':id')

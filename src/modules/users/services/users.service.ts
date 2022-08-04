@@ -1,105 +1,80 @@
 import {
-  BadRequestException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  CreateUserDto,
-  UpdatePasswordDto,
-  User,
-  UserResponse,
-} from '../models/user.modeils';
-import { v4 } from 'uuid';
+import { User, UserResponse } from '../models/user.models';
+import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdatePasswordDto } from '../dto/update-user.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { UserEntity } from '../entities/user.entity';
+import { Repository } from 'typeorm';
+import { validate } from 'uuid';
 
 @Injectable()
 export class UsersService {
-  private users: User[] = [];
+  constructor(
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
+  ) {}
 
   public async getAllUsers(): Promise<UserResponse[]> {
-    const users = this.users.map<Omit<User, 'password'>>((user) => {
-      delete user.password;
-      return user;
-    });
-    return users;
+    const users = await this.userRepository.find();
+
+    return users.map((user) => user.toResponse());
   }
 
   public async addOneUser(newUser: CreateUserDto) {
-    const user = {
-      id: v4(),
+    const createdUser = this.userRepository.create({
       ...newUser,
       version: 1,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    };
-    this.users.push({
-      ...user,
     });
-    delete user.password;
-    return user;
+    return (await this.userRepository.save(createdUser)).toResponse();
   }
 
   public async getOneUser(id: string) {
-    const user = this.users.find((user) => user.id === id);
-    if (user) {
-      delete user.password;
+    if (validate(id)) {
+      const user = await this.userRepository.findOne({ where: { id } });
+      if (user) {
+        return user.toResponse();
+      }
     }
-    return user;
   }
 
   public async updateUser(id: string, body: UpdatePasswordDto) {
-    return new Promise((res, rej) => {
-      this.users.forEach((user) => {
-        if (user.id === id) {
-          user.password = body.newPassword;
-          user.updatedAt = Date.now();
-          user.version += 1;
-          res({
-            id: user.id,
-            login: user.login,
-            version: user.version,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-          });
-        }
-      });
-      rej();
-    });
+    const message = 'forbidden';
+    try {
+      const user = await this.userRepository.findOne({ where: { id } });
+      if (user.password !== body.oldPassword) {
+        throw new Error(message);
+      }
+      user.id = id;
+      user.password = body.newPassword;
+      user.updatedAt = Date.now();
+      user.version += 1;
+      return (await this.userRepository.save(user)).toResponse();
+    } catch (error) {
+      if (error.message === message) {
+        throw new ForbiddenException('Old passwor was invalid');
+      }
+      throw new InternalServerErrorException();
+    }
   }
 
-  public deleteOneUser(id: string) {
-    this.users = this.users.filter((user) => user.id !== id);
+  public async deleteOneUser(id: string) {
+    const result = await this.userRepository.delete({ id });
+
+    if (result.affected === 0) {
+      throw new NotFoundException('User was not found');
+    }
+    return result;
   }
 
-  public checkNewUser(newUser: CreateUserDto): string[] | null {
-    const messages: string[] = [];
-
-    if (!newUser.login || typeof newUser.login !== 'string') {
-      messages.push('Login is required field');
-    }
-    if (!newUser.password || typeof newUser.password !== 'string') {
-      messages.push('Password is required field');
-    }
-
-    return messages.length === 0 ? null : messages;
-  }
-
-  public async checkUserToUpdate(id: string, body: UpdatePasswordDto) {
-    const user = this.users.find((user) => user.id === id);
-
-    if (
-      typeof body.oldPassword !== 'string' ||
-      typeof body.newPassword !== 'string'
-    ) {
-      throw new BadRequestException();
-    }
-
-    if (!user) {
-      throw new NotFoundException();
-    }
-
-    if (user.password !== body.oldPassword) {
-      throw new ForbiddenException();
-    }
+  public async getUserByFields(userEntity: Partial<User>) {
+    const user = await this.userRepository.findOne({ where: userEntity });
+    return user?.getUserInfo() ?? null;
   }
 }
