@@ -5,6 +5,7 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { parse } from 'yaml';
 import { ValidationPipe } from '@nestjs/common';
+import { CustomLoggerService } from './shared/logger.service';
 import 'dotenv/config';
 
 async function bootstrap() {
@@ -18,9 +19,23 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, parse(document));
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  addListeners();
 
   await app.listen(port);
   console.log(`App started on http://localhost:${port}`);
+}
+
+function addListeners() {
+  const logger = new CustomLoggerService();
+  process.on('uncaughtException', (err) => {
+    logger.error(err);
+    logger.debug(err);
+  });
+
+  process.on('unhandledRejection', (err) => {
+    logger.error(err);
+    logger.debug(err);
+  });
 }
 
 bootstrap();
