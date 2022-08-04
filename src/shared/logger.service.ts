@@ -57,7 +57,7 @@ export class CustomLoggerService extends ConsoleLogger {
     super.warn(message, ...optionalParams);
   }
 
-  public debug(message: string, ...optionalParams: any[]): void {
+  public debug(message: any, ...optionalParams: any[]): void {
     if (!this.checkAcces('debug')) return;
     this.loggerFilesService.write(message, 'debug');
     super.warn(message, ...optionalParams);
