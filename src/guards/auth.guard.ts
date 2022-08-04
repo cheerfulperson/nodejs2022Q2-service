@@ -29,7 +29,6 @@ export class AuthGuard implements CanActivate {
       !(await this.authService.verify(bearer?.split(' ')[1] || '')) ||
       bearer?.split(' ')[0] !== 'Bearer'
     ) {
-      console.log(bearer?.split(' '), 'UnauthorizedException');
       throw new UnauthorizedException();
     }
 

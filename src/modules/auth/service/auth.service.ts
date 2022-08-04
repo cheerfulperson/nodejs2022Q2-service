@@ -10,7 +10,7 @@ import { UserResponse } from 'src/modules/users/models/user.models';
 import { UsersService } from 'src/modules/users/services/users.service';
 import { CryptoService } from 'src/shared/crypto.service';
 import { SignupUserDto } from '../dto/signup-user.dto';
-import { refreshTokenOptions } from '../jwtconfig';
+import { refreshTokenOptions, tokenOptions } from '../jwtconfig';
 import { ResponseAuthData } from '../models/auth.model';
 import { JwtModel } from '../models/jwt.model';
 
@@ -87,7 +87,7 @@ export class AuthService {
 
   private getAuthData(user: Partial<UserResponse>) {
     const payload = { id: user.id, login: user.login };
-    const accessToken = this.jwtService.sign(payload);
+    const accessToken = this.jwtService.sign(payload, tokenOptions);
     const refreshToken = this.jwtService.sign(payload, refreshTokenOptions);
     return {
       id: user.id,
